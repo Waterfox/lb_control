@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<library path="lb_control">
+    <class  name="LBHardware"
+            type="LBHardware"
+            base_class_type="hardware_interface::SystemInterface">
+    <description>
+        The ros2_control hardware interface for Littlebot. It uses velocity commands and reports position and state interface. 
+    </description>
+    </class>
+</library>
