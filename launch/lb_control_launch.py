@@ -9,13 +9,34 @@ from launch.substitutions import Command, FindExecutable, PathJoinSubstitution, 
 from launch_ros.substitutions import FindPackageShare
 import os
 
+import xacro
+import tempfile
+
+def to_urdf(xacro_path, parameters=None):
+    """Convert the given xacro file to URDF file.
+    * xacro_path -- the path to the xacro file
+    * parameters -- to be used when xacro file is parsed.
+    """
+    with tempfile.NamedTemporaryFile(prefix="%s_" % os.path.basename(xacro_path), delete=False) as xacro_file:
+        urdf_path = xacro_file.name
+
+    # open and process file
+    doc = xacro.process_file(xacro_path, mappings=parameters)
+    # open the output file
+    with open(urdf_path, 'w') as urdf_file:
+        urdf_file.write(doc.toprettyxml(indent='  '))
+
+    return urdf_path
+
 
 def generate_launch_description():
 
     package_dir = get_package_share_directory('lb_description')
 
     # Declare a launch argument for the URDF file
-    urdf_file_path = os.path.join(package_dir, 'urdf', 'lb_description.urdf')
+    urdf_file_path = os.path.join(package_dir, 'urdf', 'lb_description.urdf.xacro')
+    #process file with xacro
+    urdf = to_urdf(urdf_file_path)
 
     robot_controllers = PathJoinSubstitution(
         [
@@ -28,12 +49,7 @@ def generate_launch_description():
     controller_params_file = os.path.join(get_package_share_directory('lb_control'),'config','lb_controllers.yaml')
 
     return LaunchDescription([
-        # Define robot description (URDF)
-#        DeclareLaunchArgument(
-#            'urdf_file',
-#            default_value=urdf_file_path
-#            description='Full path to the URDF file'
-#        ),
+
 
         # Launch the robot state publisher to publish joint states
         Node(
@@ -41,8 +57,8 @@ def generate_launch_description():
             executable='robot_state_publisher',
             name='robot_state_publisher',
             output='screen',
-            # parameters=[{'robot_description': launch.substitutions.LaunchConfiguration('urdf_file')}]
-            parameters=[{'robot_description': open(urdf_file_path).read()}]
+            arguments=[urdf],
+            #parameters=[{'robot_description': open(urdf_file_path).read()}]
         ),
 
         # Launch the controller manager
